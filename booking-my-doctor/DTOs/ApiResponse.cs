@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace MyWebApiApp.Models
+﻿namespace booking_my_doctor.DTOs
 {
     public class ApiResponse
     {

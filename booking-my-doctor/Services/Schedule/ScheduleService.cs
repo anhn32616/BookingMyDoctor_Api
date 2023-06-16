@@ -2,7 +2,7 @@
 using booking_my_doctor.Data.Entities;
 using booking_my_doctor.DTOs;
 using booking_my_doctor.Repositories;
-using MyWebApiApp.Models;
+
 
 namespace booking_my_doctor.Services
 {
@@ -20,15 +20,15 @@ namespace booking_my_doctor.Services
             _doctorRepository = doctorRepository;
         }
 
-        public async Task<ApiResponse> GetSchedules(int? page = 0, int? pageSize = int.MaxValue, int? doctorId = null, DateTime? date = null, string? sortColumn = "StartTime")
+        public async Task<ApiResponse> GetSchedules(int? page = 0, int? pageSize = int.MaxValue, int? doctorId = null, string? status = null, DateTime? date = null, string? sortColumn = "StartTime")
         {
             try
             {
-                var result = await _ScheduleRepository.GetSchedules(page, pageSize, doctorId, date, sortColumn);
+                var result = await _ScheduleRepository.GetSchedules(page, pageSize, doctorId, status, date, sortColumn);
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success",
+                    message = "Thành công",
                     data = result
                 };
             }
@@ -54,11 +54,11 @@ namespace booking_my_doctor.Services
                         message = "Không tồn tại lịch khám có id này"
                     };
                 }
-                var resultDto = _mapper.Map<Schedule, ScheduleDto>(result);
+                var resultDto = _mapper.Map<Schedule, ScheduleView>(result);
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success",
+                    message = "Thành công",
                     data = resultDto
                 };
             }
@@ -72,11 +72,23 @@ namespace booking_my_doctor.Services
             }
         }
 
-        public async Task<ApiResponse> CreateSchedule(ScheduleDto ScheduleDto)
+        public async Task<ApiResponse> CreateSchedule(ScheduleCreateDto scheduleCreateDto)
         {
             try
             {
-                var doctor = await _doctorRepository.GetDoctorById(ScheduleDto.DoctorId);
+                if (scheduleCreateDto.StartTime > scheduleCreateDto.EndTime) return new ApiResponse
+                {
+                    statusCode = 400,
+                    message = "Thời gian bắt đầu phải bé hơn thời gian kết thúc"
+                };
+                TimeSpan averageDuration = (scheduleCreateDto.EndTime - scheduleCreateDto.StartTime) / scheduleCreateDto.Count;
+                if (averageDuration.TotalMinutes < 20) return new ApiResponse
+                {
+                    statusCode = 400,
+                    message = "Thời gian mỗi ca khám phải lớn hơn hoặc bằng 20 phút"
+                };
+
+                var doctor = await _doctorRepository.GetDoctorById(scheduleCreateDto.DoctorId.Value);
                 if(doctor== null)
                 {
                     return new ApiResponse
@@ -85,8 +97,8 @@ namespace booking_my_doctor.Services
                         message = "Không tìm thấy bác sĩ có Id này"
                     };
                 }
-                var Schedule = _mapper.Map<ScheduleDto, Schedule>(ScheduleDto);
-                var listSchedule = _ScheduleRepository.GetSchedules(0, int.MaxValue, ScheduleDto.DoctorId).Result.ListItem;
+                var Schedule = _mapper.Map<ScheduleCreateDto, Schedule>(scheduleCreateDto);
+                var listSchedule = _ScheduleRepository.GetSchedules(0, int.MaxValue, scheduleCreateDto.DoctorId).Result.ListItem;
                 var IsInvalid = IsScheduleConflicting(Schedule, listSchedule);
                 if(IsInvalid)
                 {
@@ -96,12 +108,31 @@ namespace booking_my_doctor.Services
                         message = "Thời gian bị trùng với lịch khám khác"
                     };
                 }
-                var result = await _ScheduleRepository.CreateSchedule(Schedule);
+                // Tạo danh sách các ca làm việc
+                List<Schedule> shifts = new List<Schedule>();
+
+                DateTime shiftStartTime = scheduleCreateDto.StartTime;
+
+                // Tạo các ca làm việc và thêm vào danh sách
+                for (int i = 1; i <= scheduleCreateDto.Count; i++)
+                {
+                    DateTime shiftEndTime = shiftStartTime.Add(averageDuration);
+                    await _ScheduleRepository.CreateSchedule(new Schedule 
+                        { 
+                            StartTime = shiftStartTime.AddMilliseconds(1), // Thêm 1 ms để tránh trùng lịch
+                            EndTime = shiftEndTime, 
+                            Status = "Available", 
+                            Cost = scheduleCreateDto.Cost,
+                            DoctorId = scheduleCreateDto.DoctorId.Value,
+                        });
+
+                    shiftStartTime = shiftEndTime;
+                }
                 await _ScheduleRepository.IsSaveChanges();
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success"
+                    message = "Thành công"
                 };
             }
             catch (Exception ex)
@@ -120,7 +151,7 @@ namespace booking_my_doctor.Services
             {
                 var doctor = _doctorRepository.GetDoctorById(ScheduleDto.DoctorId);
                 var ScheduleCurrent = _ScheduleRepository.GetScheduleById(id);
-                Task.WaitAll(doctor, ScheduleCurrent);
+                await Task.WhenAll(doctor, ScheduleCurrent);
                 if (doctor.Result == null)
                 {
                     return new ApiResponse
@@ -134,7 +165,7 @@ namespace booking_my_doctor.Services
                     statusCode = 404,
                     message = "Không tìm thấy lịch khám có id này"
                 };
-                if (ScheduleCurrent.Result.Status == true) return new ApiResponse
+                if (ScheduleCurrent.Result.Status != "Available") return new ApiResponse
                 {
                     statusCode = 400,
                     message = "Không thể thay đổi thông tin lịch khám đã được đặt"
@@ -161,7 +192,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success"
+                    message = "Thành công"
                 };
             }
             catch (Exception ex)
@@ -185,7 +216,7 @@ namespace booking_my_doctor.Services
                     statusCode = 404,
                     message = "Không tìm thấy Schedule có id này"
                 };
-                if (ScheduleCurrent.Status == true) return new ApiResponse
+                if (ScheduleCurrent.Status == "Booked" || ScheduleCurrent.Status == "Pending") return new ApiResponse
                 {
                     statusCode = 400,
                     message = "Không thể xóa lịch khám đã được đặt"
@@ -196,7 +227,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success"
+                    message = "Thành công"
                 };
             }
             catch (Exception ex)
@@ -227,15 +258,15 @@ namespace booking_my_doctor.Services
             if (ScheduleCurrent == null) return new ApiResponse
             {
                 statusCode = 404,
-                message = "Không tìm thấy Schedule có id này"
+                message = "Không tìm thấy lịch khám có id này"
             };
-            ScheduleCurrent.Status = true;
+            ScheduleCurrent.Status = "Pending";
             await _ScheduleRepository.UpdateSchedule(ScheduleCurrent);
             await _ScheduleRepository.IsSaveChanges();
             return new ApiResponse
             {
                 statusCode = 200,
-                message = "Success"
+                message = "Thành công"
             };
         }
     }

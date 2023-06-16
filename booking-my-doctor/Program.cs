@@ -1,13 +1,16 @@
+using appointment_my_doctor.Services.Appointment;
 using booking_my_clinic.Services;
 using booking_my_doctor.Data;
 using booking_my_doctor.Profiles;
 using booking_my_doctor.Repositories;
+using booking_my_doctor.Repositories.Appoiment;
 using booking_my_doctor.Services;
 using DatingApp.API.Data.Seed;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using schedule_my_doctor.Services.Schedule;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,7 +32,7 @@ builder.Services.AddSwaggerGen();
 var services = builder.Services;
 services.AddCors(o =>
     o.AddPolicy("CorsPolicy", builder =>
-        builder.WithOrigins("http://localhost:3000")
+        builder.WithOrigins("http://localhost:3000", "http://localhost:3001")
             .AllowAnyHeader()
             .AllowAnyMethod()));
 
@@ -53,6 +56,7 @@ services.AddScoped<IClinicRepository, ClinicRepository>();
 services.AddScoped<IHospitalRepository, HospitalRepository>();
 services.AddScoped<ISpeciatlyRepository, SpeciatlyRepository>();
 services.AddScoped<IScheduleRepository, ScheduleRepository>();
+services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 
 //services
 services.AddScoped<IAuthService, AuthService>();
@@ -64,8 +68,14 @@ services.AddScoped<IClinicService, ClinicService>();
 services.AddScoped<ISpeciatlyService, SpeciatlyService>();
 services.AddScoped<IEmailService, EmailService>();
 services.AddScoped<IScheduleService, ScheduleService>();
+services.AddScoped<IAppointmentService, AppointmentService>();
+
+// Background service
+services.AddHostedService<AppointmentBackgroundService>();
+services.AddHostedService<ScheduleBackgroundService>();
+
 //mapper
-services.AddAutoMapper(typeof(UserMapperProfile).Assembly);
+services.AddAutoMapper(typeof(MapperProfile).Assembly);
 //JWT
 services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

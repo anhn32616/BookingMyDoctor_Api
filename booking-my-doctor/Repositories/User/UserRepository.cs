@@ -110,5 +110,12 @@ namespace booking_my_doctor.Repositories
             var id = _context.Users.OrderBy(u => u.Id).LastOrDefaultAsync().Result.Id;
             return id;
         }
+
+        public async Task<bool> OpenCloseUser(User user)
+        {
+            user.isDelete = !user.isDelete;
+            _context.Entry(user).State = EntityState.Modified;
+            return true;
+        }
     }
 }

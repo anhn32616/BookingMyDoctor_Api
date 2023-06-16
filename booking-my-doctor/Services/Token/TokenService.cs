@@ -10,12 +10,15 @@ namespace booking_my_doctor.Services
     {
         private readonly IConfiguration _configuration;
         private readonly IUserRepository _userRepository;
+        private readonly IDoctorRepository _doctorRepository;
         
         public TokenService(IConfiguration configuration,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+            IDoctorRepository doctorRepository)
         {
             _configuration = configuration;
             _userRepository = userRepository;
+            _doctorRepository = doctorRepository;
         }
 
         public async Task<string> CreateToken(string email)
@@ -24,10 +27,16 @@ namespace booking_my_doctor.Services
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Role, user.role.Name),
-                new Claim(JwtRegisteredClaimNames.Email, email),
-                new Claim(ClaimTypes.Name, user.fullName),
-                new Claim(JwtRegisteredClaimNames.NameId, user.Id.ToString())
+                new Claim("Role", user.role.Name),
+                new Claim("Email", email),
+                new Claim("UserId", user.Id.ToString()),
+                new Claim("Name", user.fullName)
             };
+            if (user.role.Name == "ROLE_DOCTOR") 
+            {
+                var doctorId = await _doctorRepository.GetDoctorIdByUserId(user.Id);
+                claims.Add(new Claim("DoctorId", doctorId.ToString()));
+            } 
 
             var symmetricKey = new SymmetricSecurityKey
                 (Encoding.UTF8.GetBytes(_configuration["TokenKey"]));

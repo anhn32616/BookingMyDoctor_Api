@@ -2,7 +2,7 @@
 using booking_my_doctor.Data.Entities;
 using booking_my_doctor.DTOs;
 using booking_my_doctor.Repositories;
-using MyWebApiApp.Models;
+
 using System.Security.Cryptography;
 using System.Text;
 
@@ -36,7 +36,7 @@ namespace booking_my_doctor.Services
             bool check = await _userRepository.IsEmailAlreadyExists(registerUserDto.email);
             if (check)
             {
-                throw new BadHttpRequestException("Username is already existed!");
+                throw new BadHttpRequestException("Email đã tồn tại!");
             }
             //Tao acc va return token
             using var hmac = new HMACSHA512();
@@ -84,15 +84,25 @@ namespace booking_my_doctor.Services
                     return new ApiResponse
                     {
                         statusCode = 401,
-                        message = "Sai mat khau!"
+                        message = "Sai mật khẩu!"
                     };
                 }
             }
-            var token = await  _tokenService.CreateToken(user.email);
+            if(!user.isEmailVerified) return new ApiResponse
+            {
+                statusCode = 400,
+                message = "Email chưa được xác thực"
+            };
+            if (user.isDelete == true) return new ApiResponse
+            {
+                statusCode = 400,
+                message = "Tài khoản đã bị khóa",
+            };
+            var token = await _tokenService.CreateToken(user.email);
             return new ApiResponse
             {
                 statusCode = 200,
-                message = "Success",
+                message = "Thành công",
                 data = token
             };
         }
@@ -113,7 +123,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success"
+                    message = "Thành công"
                 };
             }
             return new ApiResponse
@@ -135,7 +145,7 @@ namespace booking_my_doctor.Services
             return new ApiResponse
             {
                 statusCode = 200,
-                message = "Success"
+                message = "Thành công"
             };
         }
     }

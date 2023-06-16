@@ -1,10 +1,9 @@
 ﻿using AutoMapper;
 using booking_my_doctor.Data.Entities;
 using booking_my_doctor.DTOs;
+using booking_my_doctor.DTOs.Hospital;
 using booking_my_doctor.Repositories;
-using booking_my_doctor.Services;
-using Microsoft.AspNetCore.Mvc;
-using MyWebApiApp.Models;
+
 using System.Linq;
 
 namespace booking_my_doctor.Services
@@ -29,7 +28,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success",
+                    message = "Thành công",
                     data = resultDto
                 };
             }
@@ -55,11 +54,19 @@ namespace booking_my_doctor.Services
                         message = "Không tồn tại hospital có id này"
                     };
                 }
-                var resultDto = _mapper.Map<Hospital, HospitalDto>(result);
+                var resultDto = new HospitalDetail();
+                resultDto.Id = result.Id;
+                resultDto.address = result.address;
+                resultDto.name = result.name;
+                resultDto.ward= result.ward;
+                resultDto.district = result.district;
+                resultDto.city = result.city;
+                resultDto.imageUrl = result.imageUrl;
+                resultDto.doctors = result.doctors.Select(_mapper.Map<Doctor, DoctorDto>).ToList();
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success",
+                    message = "Thành công",
                     data = resultDto
                 };
             }
@@ -83,7 +90,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success"
+                    message = "Thành công"
                 };
             }
             catch (Exception ex)
@@ -117,7 +124,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success"
+                    message = "Thành công"
                 };
             }
             catch (Exception ex)
@@ -147,7 +154,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success"
+                    message = "Thành công"
                 };
             }
             catch (Exception ex)

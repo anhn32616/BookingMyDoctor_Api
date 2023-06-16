@@ -39,15 +39,26 @@ namespace booking_my_doctor.Repositories
             hospitals = await query.ToListAsync();
             pagination.TotalCount = hospitals.Count;
 
-            hospitals = await query.Skip(page!.Value * pageSize!.Value).Take(pageSize.Value).ToListAsync();
-            pagination.PageSize = pageSize.Value;
-            pagination.Page = page.Value;
+            if (page == null || pageSize == null)
+            {
+                pagination.Page = 0;
+                pagination.PageSize = (pagination.TotalCount != 0) ? pagination.TotalCount : 10;
+            }
+            else
+            {
+                hospitals = await query.Skip(page!.Value * pageSize!.Value).Take(pageSize.Value).ToListAsync();
+                pagination.PageSize = pageSize.Value;
+                pagination.Page = page.Value;
+            }
             pagination.ListItem = hospitals;
             return pagination;
         }
         public async Task<Hospital> GetHospitalById(int id)
         {
-            return await _context.Hospitals.FirstOrDefaultAsync(c => c.Id == id);
+            var res = await _context.Hospitals.FirstOrDefaultAsync(c => c.Id == id);
+            var doctors = await _context.Doctors.Where(d => d.hospitalId == id).Include(d => d.hospital).Include(d => d.clinic).Include(d => d.speciatly).Include(d => d.user).ToListAsync();
+            res.doctors = doctors;
+            return res;
         }
         public async Task<bool> IsSaveChanges()
         {

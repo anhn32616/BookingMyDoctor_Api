@@ -1,10 +1,10 @@
 ﻿using AutoMapper;
 using booking_my_doctor.Data.Entities;
 using booking_my_doctor.DTOs;
+using booking_my_doctor.DTOs.Hospital;
+using booking_my_doctor.DTOs.Specialty;
 using booking_my_doctor.Repositories;
-using booking_my_doctor.Services;
-using Microsoft.AspNetCore.Mvc;
-using MyWebApiApp.Models;
+
 using System.Linq;
 
 namespace booking_my_doctor.Services
@@ -29,7 +29,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success",
+                    message = "Thành công",
                     data = resultDto
                 };
             }
@@ -52,14 +52,18 @@ namespace booking_my_doctor.Services
                     return new ApiResponse
                     {
                         statusCode = 404,
-                        message = "Không tồn tại speciatly có id này"
+                        message = "Không tồn tại phòng khám có id này"
                     };
                 }
-                var resultDto = _mapper.Map<Speciatly, SpeciatlyDto>(result);
+                var resultDto = new SpecialtyDetail();
+                resultDto.Id = result.Id;
+                resultDto.name = result.name;
+                resultDto.imageUrl = result.imageUrl;
+                resultDto.doctors = result.doctors.Select(_mapper.Map<Doctor, DoctorDto>).ToList();
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success",
+                    message = "Thành công",
                     data = resultDto
                 };
             }
@@ -83,7 +87,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success"
+                    message = "Thành công"
                 };
             }
             catch (Exception ex)
@@ -104,7 +108,7 @@ namespace booking_my_doctor.Services
                 if (speciatlyCurrent == null) return new ApiResponse
                 {
                     statusCode = 404,
-                    message = "Không tìm thấy speciatly có id này"
+                    message = "Không tìm thấy phòng khám có id này"
                 };
                 speciatlyCurrent.name = speciatlyDto.name;
                 speciatlyCurrent.imageUrl = speciatlyDto.imageUrl;
@@ -113,7 +117,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success"
+                    message = "Thành công"
                 };
             }
             catch (Exception ex)
@@ -135,7 +139,7 @@ namespace booking_my_doctor.Services
                 if (speciatlyCurrent == null) return new ApiResponse
                 {
                     statusCode = 404,
-                    message = "Không tìm thấy speciatly có id này"
+                    message = "Không tìm thấy phòng khám có id này"
                 };
 
                 await _speciatlyRepository.DeleteSpeciatly(speciatlyCurrent);
@@ -143,7 +147,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success"
+                    message = "Thành công"
                 };
             }
             catch (Exception ex)

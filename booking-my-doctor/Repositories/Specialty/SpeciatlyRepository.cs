@@ -39,15 +39,26 @@ namespace booking_my_doctor.Repositories
             speciatlys = await query.ToListAsync();
             pagination.TotalCount = speciatlys.Count;
 
-            speciatlys = await query.Skip(page!.Value * pageSize!.Value).Take(pageSize.Value).ToListAsync();
-            pagination.PageSize = pageSize.Value;
-            pagination.Page = page.Value;
+            if (page == null || pageSize == null)
+            {
+                pagination.Page = 0;
+                pagination.PageSize = (pagination.TotalCount != 0) ? pagination.TotalCount : 10;
+            }
+            else
+            {
+                speciatlys = await query.Skip(page!.Value * pageSize!.Value).Take(pageSize.Value).ToListAsync();
+                pagination.PageSize = pageSize.Value;
+                pagination.Page = page.Value;
+            }
             pagination.ListItem = speciatlys;
             return pagination;
         }
         public async Task<Speciatly> GetSpeciatlyById(int id)
         {
-            return await _context.Speciatlies.FirstOrDefaultAsync(c => c.Id == id);
+            var res = await _context.Speciatlies.FirstOrDefaultAsync(c => c.Id == id);
+            var doctors = await _context.Doctors.Where(d => d.specialtyId == id).Include(d => d.hospital).Include(d => d.clinic).Include(d => d.speciatly).Include(d => d.user).ToListAsync();
+            res.doctors = doctors;
+            return res;
         }
         public async Task<bool> IsSaveChanges()
         {

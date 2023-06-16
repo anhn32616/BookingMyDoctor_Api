@@ -13,7 +13,7 @@ namespace booking_my_doctor.Data.Entities
         [Required]
         public int DoctorId { get; set; }
         [Required]
-        public bool Status { get; set; }
+        public string Status { get; set; }
         [Required]
         public double Cost { get; set; }
         public virtual Doctor Doctor { get; set; }

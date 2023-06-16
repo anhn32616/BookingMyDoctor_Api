@@ -1,9 +1,6 @@
-﻿using booking_my_doctor.Data.Entities;
-using booking_my_doctor.DTOs;
+﻿using booking_my_doctor.DTOs;
 using booking_my_doctor.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using static Microsoft.Extensions.Logging.EventSource.LoggingEventSource;
 
 namespace booking_my_doctor.Controllers
 {

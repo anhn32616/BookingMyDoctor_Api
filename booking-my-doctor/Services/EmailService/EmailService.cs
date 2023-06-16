@@ -3,7 +3,7 @@ using MimeKit.Text;
 using MailKit.Net.Smtp;
 using MimeKit;
 using booking_my_doctor.Repositories;
-using MyWebApiApp.Models;
+using booking_my_doctor.DTOs;
 
 namespace booking_my_doctor.Services 
 { 
@@ -46,7 +46,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse()
                 {
                     statusCode = 200,
-                    message = "Success! Please check your email",
+                    message = "Thành công! Please check your email",
                 };
             }
             catch (Exception e)

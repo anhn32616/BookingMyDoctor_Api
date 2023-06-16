@@ -31,6 +31,11 @@ namespace booking_my_doctor.Repositories
             return await _context.Doctors.Where(d => d.Id == id).Include(d => d.hospital).Include(d => d.clinic).Include(d => d.speciatly).Include(d => d.user).Include(d => d.user.role).FirstOrDefaultAsync();
         }
 
+        public async Task<int> GetDoctorIdByUserId(int userId)
+        {
+            return _context.Doctors.Where(d => d.userId == userId).FirstOrDefaultAsync().Result.Id;
+        }
+
         public async Task<PaginationDTO<Doctor>> GetDoctors(int? page = 0, int? pageSize = int.MaxValue, string? keyword = null, string? sortColumn = "Id")
         {
             var query = _context.Doctors.Include(d => d.hospital).Include(d => d.clinic).Include(d => d.speciatly).Include(d => d.user).Include(d => d.user.role).AsQueryable();
@@ -55,9 +60,17 @@ namespace booking_my_doctor.Repositories
             doctors = await query.ToListAsync();
             pagination.TotalCount = doctors.Count;
 
-            doctors = await query.Skip(page!.Value * pageSize!.Value).Take(pageSize.Value).ToListAsync();
-            pagination.PageSize = pageSize.Value;
-            pagination.Page = page.Value;
+            if (page == null || pageSize == null)
+            {
+                pagination.Page = 0;
+                pagination.PageSize = (pagination.TotalCount != 0) ? pagination.TotalCount : 10;
+            }
+            else
+            {
+                doctors = await query.Skip(page!.Value * pageSize!.Value).Take(pageSize.Value).ToListAsync();
+                pagination.PageSize = pageSize.Value;
+                pagination.Page = page.Value;
+            }
             pagination.ListItem = doctors;
             return pagination;
         }

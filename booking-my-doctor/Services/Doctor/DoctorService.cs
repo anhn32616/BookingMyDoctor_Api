@@ -2,7 +2,7 @@
 using booking_my_doctor.Data.Entities;
 using booking_my_doctor.DTOs;
 using booking_my_doctor.Repositories;
-using MyWebApiApp.Models;
+
 
 namespace booking_my_doctor.Services
 {
@@ -39,7 +39,7 @@ namespace booking_my_doctor.Services
                 var IsHospitalIdValid = _hospitalRepository.GetHospitalById(doctorCreateDto.hospitalId);
                 var IsClinicIdValid = _clinicRepository.GetClinicById(doctorCreateDto.clinicId);
                 var IsSpeciatlyIdValid = _speciatlyRepository.GetSpeciatlyById(doctorCreateDto.specialtyId);
-                Task.WaitAll(IsHospitalIdValid, IsClinicIdValid, IsSpeciatlyIdValid);
+                await Task.WhenAll(IsHospitalIdValid, IsClinicIdValid, IsSpeciatlyIdValid);
                 if (IsHospitalIdValid.Result == null) return new ApiResponse
                 {
                     statusCode = 404,
@@ -79,7 +79,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success",
+                    message = "Thành công",
                 };
 
                 
@@ -109,7 +109,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success"
+                    message = "Thành công"
                 };
             }
             catch (Exception ex)
@@ -136,7 +136,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success",
+                    message = "Thành công",
                     data = resultDto
                 };
             }
@@ -159,7 +159,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success",
+                    message = "Thành công",
                     data = resultDto
                 };
             }
@@ -186,7 +186,7 @@ namespace booking_my_doctor.Services
                 var IsHospitalIdValid = _hospitalRepository.GetHospitalById(doctorUpdateDto.hospitalId);
                 var IsClinicIdValid = _clinicRepository.GetClinicById(doctorUpdateDto.clinicId);
                 var IsSpeciatlyIdValid = _speciatlyRepository.GetSpeciatlyById(doctorUpdateDto.specialtyId);
-                Task.WaitAll(IsHospitalIdValid, IsClinicIdValid, IsSpeciatlyIdValid);
+                await Task.WhenAll(IsHospitalIdValid, IsClinicIdValid, IsSpeciatlyIdValid);
                 if (IsHospitalIdValid.Result == null) return new ApiResponse
                 {
                     statusCode = 404,
@@ -219,7 +219,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success",
+                    message = "Thành công",
                 };
 
 

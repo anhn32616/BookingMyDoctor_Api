@@ -2,7 +2,7 @@
 using booking_my_doctor.Data.Entities;
 using booking_my_doctor.DTOs;
 using booking_my_doctor.Repositories;
-using MyWebApiApp.Models;
+using Microsoft.AspNetCore.Authorization;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -13,13 +13,16 @@ namespace booking_my_doctor.Services
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
         private readonly IRoleRepository _roleRepository;
+        private readonly IDoctorRepository _doctorRepository;
         public UserService(IUserRepository userRepository,
             IMapper mapper,
-            IRoleRepository roleRepository)
+            IRoleRepository roleRepository,
+            IDoctorRepository doctorRepository)
         {
             _userRepository = userRepository;
             _mapper = mapper;
             _roleRepository = roleRepository;
+            _doctorRepository = doctorRepository;
         }
         public async Task<ApiResponse> CreateUser(UserCreateDto userDto)
         {
@@ -28,7 +31,7 @@ namespace booking_my_doctor.Services
                 // Kiem tra email da ton tai hay chua
                 var check = _userRepository.IsEmailAlreadyExists(userDto.email);
                 var roleUser = _roleRepository.getRoleByName(userDto.roleName);
-                Task.WaitAll(check, roleUser);
+                await Task.WhenAll(check, roleUser);
 
                 if (check.Result)
                 {
@@ -70,7 +73,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success"
+                    message = "Thành công"
                 };
             }
             catch (Exception ex)
@@ -100,7 +103,7 @@ namespace booking_my_doctor.Services
             return new ApiResponse
             {
                 statusCode = 200,
-                message = "Success"
+                message = "Thành công"
             };
         }
 
@@ -121,7 +124,7 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success",
+                    message = "Thành công",
                     data = paginationUserDTO
                 };
             }
@@ -135,6 +138,8 @@ namespace booking_my_doctor.Services
             }
 
         }
+
+
         public async Task<ApiResponse> GetUserById(int? id)
         {
             try
@@ -151,10 +156,37 @@ namespace booking_my_doctor.Services
                     message = $"Không tìm thấy user có id {id.Value}"
                 };
                 var user = _mapper.Map<UserDTO>(result);
+                if(user.roleName == "ROLE_DOCTOR")
+                {
+                    var doctorId = await _doctorRepository.GetDoctorIdByUserId(user.Id);
+                    return new ApiResponse
+                    {
+                        statusCode = 200,
+                        message = "Thành công",
+                        data = new
+                        {
+                            user.Id,
+                            user.birthDay,
+                            user.fullName,
+                            user.countViolation,
+                            user.address,
+                            user.district,
+                            user.city,
+                            user.ward,
+                            user.phoneNumber,
+                            user.image,
+                            user.email,
+                            user.isDelete,
+                            user.isEmailVerified,
+                            user.roleName,
+                            doctorId
+                        }
+                    };
+                }
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success",
+                    message = "Thành công",
                     data = user
                 };
             }
@@ -167,6 +199,34 @@ namespace booking_my_doctor.Services
                 };
             }
 
+        }
+        [Authorize(Roles="ROLE_ADMIN")]
+        public async Task<ApiResponse> OpenCloseUser(int userId)
+        {
+            try
+            {
+                var result = await _userRepository.GetUserById(userId);
+                if (result == null) return new ApiResponse
+                {
+                    statusCode = 404,
+                    message = $"Không tìm thấy user có id {userId}"
+                };
+                await _userRepository.OpenCloseUser(result);
+                await _userRepository.IsSaveChanges();
+                return new ApiResponse
+                {
+                    statusCode = 200,
+                    message = "Thành công",
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse
+                {
+                    statusCode = 500,
+                    message = ex.Message
+                };
+            }
         }
 
         public async Task<ApiResponse> UpdateUser(int userId, UserUpdateDTO userUpdateDTO)
@@ -188,16 +248,16 @@ namespace booking_my_doctor.Services
                 userCurrent.gender = userUpdateDTO.gender;
                 userCurrent.city = userUpdateDTO.city;
                 userCurrent.district = userUpdateDTO.district;
-                userUpdateDTO.ward = userUpdateDTO.ward;
+                userCurrent.ward = userUpdateDTO.ward;
                 userCurrent.address = userUpdateDTO.address;
                 userCurrent.phoneNumber = userUpdateDTO.phoneNumber;
-                userCurrent.countViolation = userUpdateDTO.countViolation;
+                if (userUpdateDTO.countViolation != null) userCurrent.countViolation = userUpdateDTO.countViolation;
 
                 await _userRepository.UpdateUser(userCurrent);
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Success"
+                    message = "Thành công"
                 };
             }
             catch (Exception ex)

@@ -11,5 +11,7 @@ namespace booking_my_doctor.Repositories
         Task<Doctor> GetDoctorById(int id);
         Task<bool> UpdateDoctor(Doctor doctor);
         Task<bool> DeleteDoctor(Doctor doctor);
+        Task<int> GetDoctorIdByUserId(int userId);
+
     }
 }

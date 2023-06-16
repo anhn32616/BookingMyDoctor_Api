@@ -2,6 +2,7 @@
 using booking_my_doctor.Data.Entities;
 using booking_my_doctor.DTOs;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace booking_my_doctor.Repositories
 {
@@ -14,7 +15,7 @@ namespace booking_my_doctor.Repositories
             _context = context;
         }
 
-        public async Task<PaginationDTO<ScheduleView>> GetSchedules(int? page = 0, int? pageSize = int.MaxValue, int? doctorId = null, DateTime? date = null, string? sortColumn = "StartTime")
+        public async Task<PaginationDTO<ScheduleView>> GetSchedules(int? page = 0, int? pageSize = int.MaxValue, int? doctorId = null, string? status = null, DateTime? date = null, string? sortColumn = "StartTime")
         {
             var query = _context.Schedules.AsQueryable();
 
@@ -25,6 +26,10 @@ namespace booking_my_doctor.Repositories
             if (date != null)
             {
                 query = query.Where(s => s.StartTime.Date == date.Value.Date);
+            }
+            if (status != null)
+            {
+                query = query.Where(s => s.Status.Equals(status));
             }
 
             switch (sortColumn)
@@ -62,7 +67,7 @@ namespace booking_my_doctor.Repositories
         }
         public async Task<Schedule> GetScheduleById(int id)
         {
-            return await _context.Schedules.FirstOrDefaultAsync(c => c.Id == id);
+            return await _context.Schedules.Include(s => s.Doctor.user).FirstOrDefaultAsync(c => c.Id == id);
         }
         public async Task<bool> IsSaveChanges()
         {
@@ -84,6 +89,27 @@ namespace booking_my_doctor.Repositories
         public async Task<bool> DeleteSchedule(Schedule schedule)
         {
             _context.Remove(schedule);
+            return true;
+        }
+
+        public async Task<bool> UpdateStatusSchedule(Schedule schedule)
+        {
+            var count = await _context.Appointments.Where(a => a.ScheduleId == schedule.Id && a.Status == "Pending").CountAsync();
+            if (count == 0) schedule.Status = "Available";
+            else schedule.Status = "Pending";
+            _context.Entry(schedule).State = EntityState.Modified;
+            return true;
+        }
+
+        public async Task<bool> UpdateScheduleExpired()
+        {
+            var schedules = await _context.Schedules.Where(s => (s.Status.Equals("Available") || (s.Status.Equals("Pending") && s.Appointments.All(a => a.Status.Equals("Cancel"))))
+            && s.StartTime < DateTime.Now).ToListAsync();
+            foreach (var item in schedules)
+            {
+                item.Status = "Expired";
+                _context.Entry(item).State = EntityState.Modified;
+            }
             return true;
         }
     }

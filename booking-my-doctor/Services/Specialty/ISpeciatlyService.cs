@@ -1,7 +1,7 @@
 ﻿using booking_my_doctor.Data.Entities;
 using booking_my_doctor.DTOs;
 using Microsoft.AspNetCore.Mvc;
-using MyWebApiApp.Models;
+
 
 namespace booking_my_doctor.Services
 {

@@ -15,5 +15,6 @@ namespace booking_my_doctor.Repositories
         Task<bool> VerifiedEmail(User user, string token);
         Task<bool> IsSaveChanges();
         Task<int> GetLastUserID();
+        Task<bool> OpenCloseUser(User user);
     }
 }
