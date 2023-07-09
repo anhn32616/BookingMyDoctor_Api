@@ -30,13 +30,13 @@ namespace booking_my_doctor.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
+                    b.Property<bool?>("Paid")
+                        .HasColumnType("bit");
+
                     b.Property<int>("PatientId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("PaymentId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Rating")
+                    b.Property<int?>("RateId")
                         .HasColumnType("int");
 
                     b.Property<int>("ScheduleId")
@@ -56,8 +56,6 @@ namespace booking_my_doctor.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("PatientId");
-
-                    b.HasIndex("PaymentId");
 
                     b.HasIndex("ScheduleId");
 
@@ -195,6 +193,35 @@ namespace booking_my_doctor.Migrations
                     b.ToTable("Hospitals");
                 });
 
+            modelBuilder.Entity("booking_my_doctor.Data.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<bool>("Status")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("booking_my_doctor.Data.Entities.Payment", b =>
                 {
                     b.Property<int>("Id")
@@ -215,18 +242,44 @@ namespace booking_my_doctor.Migrations
                     b.Property<double>("MonthlyFee")
                         .HasColumnType("float");
 
+                    b.Property<bool>("Status")
+                        .HasColumnType("bit");
+
                     b.Property<string>("TransId")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("month")
-                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DoctorId");
 
                     b.ToTable("Payments");
+                });
+
+            modelBuilder.Entity("booking_my_doctor.Data.Entities.Rate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<int>("AppointmentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<int>("Point")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppointmentId")
+                        .IsUnique();
+
+                    b.ToTable("Rates");
                 });
 
             modelBuilder.Entity("booking_my_doctor.Data.Entities.Role", b =>
@@ -301,6 +354,33 @@ namespace booking_my_doctor.Migrations
                     b.ToTable("Speciatlies");
                 });
 
+            modelBuilder.Entity("booking_my_doctor.Data.Entities.Timetable", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<double>("Cost")
+                        .HasColumnType("float");
+
+                    b.Property<int>("DoctorId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("EndTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DoctorId");
+
+                    b.ToTable("Timetables");
+                });
+
             modelBuilder.Entity("booking_my_doctor.Data.Entities.User", b =>
                 {
                     b.Property<int>("Id")
@@ -325,7 +405,6 @@ namespace booking_my_doctor.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("city")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -335,7 +414,6 @@ namespace booking_my_doctor.Migrations
                         .HasDefaultValueSql("0");
 
                     b.Property<string>("district")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("email")
@@ -372,7 +450,6 @@ namespace booking_my_doctor.Migrations
                         .HasColumnType("nvarchar(512)");
 
                     b.Property<string>("ward")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -393,10 +470,6 @@ namespace booking_my_doctor.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("booking_my_doctor.Data.Entities.Payment", "Payment")
-                        .WithMany("Appointments")
-                        .HasForeignKey("PaymentId");
-
                     b.HasOne("booking_my_doctor.Data.Entities.Schedule", "Schedule")
                         .WithMany("Appointments")
                         .HasForeignKey("ScheduleId")
@@ -404,8 +477,6 @@ namespace booking_my_doctor.Migrations
                         .IsRequired();
 
                     b.Navigation("Patient");
-
-                    b.Navigation("Payment");
 
                     b.Navigation("Schedule");
                 });
@@ -445,15 +516,37 @@ namespace booking_my_doctor.Migrations
                     b.Navigation("user");
                 });
 
+            modelBuilder.Entity("booking_my_doctor.Data.Entities.Notification", b =>
+                {
+                    b.HasOne("booking_my_doctor.Data.Entities.User", "User")
+                        .WithMany("Notifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("booking_my_doctor.Data.Entities.Payment", b =>
                 {
                     b.HasOne("booking_my_doctor.Data.Entities.Doctor", "Doctor")
-                        .WithMany()
+                        .WithMany("Payments")
                         .HasForeignKey("DoctorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Doctor");
+                });
+
+            modelBuilder.Entity("booking_my_doctor.Data.Entities.Rate", b =>
+                {
+                    b.HasOne("booking_my_doctor.Data.Entities.Appointment", "Appointment")
+                        .WithOne("Rate")
+                        .HasForeignKey("booking_my_doctor.Data.Entities.Rate", "AppointmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Appointment");
                 });
 
             modelBuilder.Entity("booking_my_doctor.Data.Entities.Schedule", b =>
@@ -467,6 +560,15 @@ namespace booking_my_doctor.Migrations
                     b.Navigation("Doctor");
                 });
 
+            modelBuilder.Entity("booking_my_doctor.Data.Entities.Timetable", b =>
+                {
+                    b.HasOne("booking_my_doctor.Data.Entities.Doctor", null)
+                        .WithMany("Timetables")
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("booking_my_doctor.Data.Entities.User", b =>
                 {
                     b.HasOne("booking_my_doctor.Data.Entities.Role", "role")
@@ -478,6 +580,11 @@ namespace booking_my_doctor.Migrations
                     b.Navigation("role");
                 });
 
+            modelBuilder.Entity("booking_my_doctor.Data.Entities.Appointment", b =>
+                {
+                    b.Navigation("Rate");
+                });
+
             modelBuilder.Entity("booking_my_doctor.Data.Entities.Clinic", b =>
                 {
                     b.Navigation("doctor")
@@ -486,17 +593,16 @@ namespace booking_my_doctor.Migrations
 
             modelBuilder.Entity("booking_my_doctor.Data.Entities.Doctor", b =>
                 {
+                    b.Navigation("Payments");
+
                     b.Navigation("Schedules");
+
+                    b.Navigation("Timetables");
                 });
 
             modelBuilder.Entity("booking_my_doctor.Data.Entities.Hospital", b =>
                 {
                     b.Navigation("doctors");
-                });
-
-            modelBuilder.Entity("booking_my_doctor.Data.Entities.Payment", b =>
-                {
-                    b.Navigation("Appointments");
                 });
 
             modelBuilder.Entity("booking_my_doctor.Data.Entities.Role", b =>
@@ -517,6 +623,8 @@ namespace booking_my_doctor.Migrations
             modelBuilder.Entity("booking_my_doctor.Data.Entities.User", b =>
                 {
                     b.Navigation("Appointments");
+
+                    b.Navigation("Notifications");
                 });
 #pragma warning restore 612, 618
         }

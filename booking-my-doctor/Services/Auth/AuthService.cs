@@ -42,34 +42,44 @@ namespace booking_my_doctor.Services
             using var hmac = new HMACSHA512();
             var passwordBytes = Encoding.UTF8.GetBytes(registerUserDto.password);
             var newUser = _mapper.Map<RegisterUserDto, User>(registerUserDto);
-            
-            //newUser.image = newUser.gender == false ? "https://cdn4.iconfinder.com/data/icons/medical-and-health-15/128/115-512.png"
-            //     : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSetlcP-zX0tDv47hUaZ2Z3e_QKYclz3XzSOm9CJPlsqjYOWDDDP8dvk0wQZ3DQ6Ybyae4&usqp=CAU";
-    
+
+            newUser.image = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSetlcP-zX0tDv47hUaZ2Z3e_QKYclz3XzSOm9CJPlsqjYOWDDDP8dvk0wQZ3DQ6Ybyae4&usqp=CAU";
+
             var role = await _roleRepository.getRoleByName("ROLE_PATIENT");
             newUser.roleId = role.Id;
+            newUser.gender = true;
             newUser.isDelete = false;
             newUser.PasswordSalt = hmac.Key;
             newUser.PasswordHash = hmac.ComputeHash(passwordBytes);
             newUser.isEmailVerified = false;
             await _userRepository.CreateUser(newUser);
-            await _userRepository.IsSaveChanges();
             // Tao token xac thuc email
             var token = await _tokenService.CreateToken(newUser.email);
             newUser.token = token;
+            // Gui email xac thuc tai khoan
+            string body = $"<a href='http://localhost:3000/auth/verify-account?token={token}'>Click vào đây<a/> để xác thực tài khoản";
+            _emailService.SendEmail(registerUserDto.email, "Xác thực tài khoản dịch vụ BOOKING MY DOCTOR", body);
             await _userRepository.UpdateUser(newUser);
             await _userRepository.IsSaveChanges();
             return token;
         }
         public async Task<ApiResponse> Login(UserLoginDto userLoginDto)
         {
-            var user = await  _userRepository.GetUserByEmail(userLoginDto.email);
+            var user = await _userRepository.GetUserByEmail(userLoginDto.email);
             if (user == null)
             {
                 return new ApiResponse
                 {
-                    statusCode = 401,
+                    statusCode = 400,
                     message = "email không tồn tại!"
+                };
+            }
+            if (!user.isEmailVerified)
+            {
+                return new ApiResponse
+                {
+                    statusCode = 401,
+                    message = "Email chưa được xác thực!"
                 };
             }
             using var hmac = new HMACSHA512(user.PasswordSalt);
@@ -88,7 +98,7 @@ namespace booking_my_doctor.Services
                     };
                 }
             }
-            if(!user.isEmailVerified) return new ApiResponse
+            if (!user.isEmailVerified) return new ApiResponse
             {
                 statusCode = 400,
                 message = "Email chưa được xác thực"
@@ -106,20 +116,13 @@ namespace booking_my_doctor.Services
                 data = token
             };
         }
-        
-        public async Task<ApiResponse> VerifiedEmail(string email, string token)
-        {
-            var user = await _userRepository.GetUserByEmail(email);
-            if (user == null) return new ApiResponse
-            {
-                statusCode = 404,
-                message = "Không tìm thấy người dùng có id này"
-            };
-            var result = await _userRepository.VerifiedEmail(user, token);
 
+        public async Task<ApiResponse> VerifiedEmail(string token)
+        {
+            var result = await _userRepository.VerifiedEmail(token);
+            await _userRepository.IsSaveChanges();
             if (result)
             {
-                await _userRepository.IsSaveChanges();
                 return new ApiResponse
                 {
                     statusCode = 200,
@@ -147,6 +150,47 @@ namespace booking_my_doctor.Services
                 statusCode = 200,
                 message = "Thành công"
             };
+        }
+
+        public async Task<ApiResponse> ForgotPassword(string email)
+        {
+            var user = await _userRepository.GetUserByEmail(email);
+            if (user == null) return new ApiResponse()
+            {
+                statusCode = 400,
+                message = "Email không tồn tại!"
+            };
+
+            if (!user.isEmailVerified) return new ApiResponse()
+            {
+                statusCode = 400,
+                message = "Email của bạn chưa xác thực"
+            };
+
+            Random rnd = new Random();
+            string newPass = "";
+            for (int i = 0; i < 8; i++)
+            {
+                newPass += rnd.Next(0, 10).ToString();
+            }
+
+            using var hmac = new HMACSHA512();
+            var passwordBytes = Encoding.UTF8.GetBytes(newPass);
+
+            user.PasswordSalt = hmac.Key;
+            user.PasswordHash = hmac.ComputeHash(passwordBytes);
+
+            await _userRepository.UpdateUser(user);
+            await _userRepository.IsSaveChanges();
+
+
+            _emailService.SendEmail(user.email, "[Booking My Doctor] Mật khẩu mới", "Mật khẩu mới của bạn là: " + newPass);
+            return new ApiResponse()
+            {
+                statusCode = 200,
+                message = "Thành công",
+            };
+
         }
     }
 }

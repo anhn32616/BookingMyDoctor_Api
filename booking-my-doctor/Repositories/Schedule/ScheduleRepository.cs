@@ -2,7 +2,7 @@
 using booking_my_doctor.Data.Entities;
 using booking_my_doctor.DTOs;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+
 
 namespace booking_my_doctor.Repositories
 {
@@ -110,6 +110,38 @@ namespace booking_my_doctor.Repositories
                 item.Status = "Expired";
                 _context.Entry(item).State = EntityState.Modified;
             }
+            return true;
+        }
+
+        public async Task<bool> AutoAddSchedule()
+        {
+            var doctors = await _context.Doctors.Include(d => d.Timetables).Include(d => d.Schedules).ToListAsync();
+            foreach (var doctor in doctors)
+            {
+                var today = DateTime.Now;
+                for (int i = 1; i <= 7; i++)
+                {
+                    var day = today.AddDays(i);
+                    if(!doctor.Schedules.Any(s => s.StartTime.Date == day.Date))
+                    {
+                        foreach (var timetalbe in doctor.Timetables)
+                        {
+                            var diffday = day.Date - timetalbe.StartTime.Date;
+                            var schedule = new Schedule
+                            {
+                                DoctorId = doctor.Id,
+                                Cost = timetalbe.Cost,
+                                StartTime = timetalbe.StartTime.Add(diffday),
+                                EndTime = timetalbe.EndTime.Add(diffday),
+                                Status = "Available"
+                            };
+                            doctor.Schedules.Add(schedule);
+                        }
+                    }
+                }
+                _context.Entry(doctor).State = EntityState.Modified;
+            }
+            await _context.SaveChangesAsync();
             return true;
         }
     }

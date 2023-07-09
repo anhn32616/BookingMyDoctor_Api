@@ -1,6 +1,6 @@
 ﻿using booking_my_doctor.DTOs;
 using booking_my_doctor.DTOs.Appointment;
-
+using booking_my_doctor.DTOs.Rate;
 
 namespace booking_my_doctor.Services
 {
@@ -14,7 +14,7 @@ namespace booking_my_doctor.Services
         Task<ApiResponse> DoctorReportAppointment(int doctorId, int appointmentId);
         Task<ApiResponse> AdminHandleReport(int id, string violator);
         Task<ApiResponse> CancelAppointment(int appointmentId, int userId, string role);
-        Task<ApiResponse> PatientRateAppointment(int id, int patientId, int rate);
+        Task<ApiResponse> PatientRateAppointment(int id, int patientId, RateDto rate);
 
 
     }

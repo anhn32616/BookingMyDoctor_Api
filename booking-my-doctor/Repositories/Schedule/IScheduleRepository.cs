@@ -13,6 +13,8 @@ namespace booking_my_doctor.Repositories
         Task<bool> IsSaveChanges();
         Task<bool> UpdateStatusSchedule(Schedule schedule);
         Task<bool> UpdateScheduleExpired();
+        Task<bool> AutoAddSchedule();
+
 
     }
 }

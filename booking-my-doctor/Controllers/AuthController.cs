@@ -44,10 +44,10 @@ namespace booking_my_doctor.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
-        [HttpPost("verified")]
-        public async Task<IActionResult> VerifiedEmail(string email, string token)
+        [HttpGet("verified")]
+        public async Task<IActionResult> VerifiedEmail(string token)
         {
-            var resData = await _authService.VerifiedEmail(email, token);
+            var resData = await _authService.VerifiedEmail(token);
             return StatusCode(resData.statusCode, resData);
         }
         [HttpGet("sendMailVerified")]
@@ -55,6 +55,13 @@ namespace booking_my_doctor.Controllers
         {
             var resData = await _authService.SendMailVerified(email);
             return StatusCode(resData.statusCode, resData);
+        }
+
+        [HttpPost("forgot")]
+        public async Task<IActionResult> ForgotPassword([FromBody] string email)
+        {
+            var res = await _authService.ForgotPassword(email);
+            return StatusCode(res.statusCode, res);
         }
     }
 }

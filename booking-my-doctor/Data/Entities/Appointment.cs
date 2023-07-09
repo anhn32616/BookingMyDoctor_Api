@@ -16,10 +16,10 @@ namespace booking_my_doctor.Data.Entities
         public string Symptoms { get; set; }
         [Required]
         public string Status { get; set; }
-        public int? Rating { get; set; }
-        public int? PaymentId { get; set; }
+        public int? RateId { get; set; }
+        public bool? Paid { get; set; }
         public virtual User Patient { get; set; }
         public virtual Schedule Schedule { get; set; }
-        public virtual Payment? Payment { get; set; }
+        public virtual Rate? Rate { get; set; }
     }
 }

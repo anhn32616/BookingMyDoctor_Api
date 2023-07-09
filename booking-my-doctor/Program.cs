@@ -1,4 +1,4 @@
-using appointment_my_doctor.Services.Appointment;
+﻿using appointment_my_doctor.Services.Appointment;
 using booking_my_clinic.Services;
 using booking_my_doctor.Data;
 using booking_my_doctor.Profiles;
@@ -12,6 +12,10 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using schedule_my_doctor.Services.Schedule;
 using System.Text;
+using booking_my_doctor.Services.Statistical;
+using booking_my_doctor.Services.PaymentService;
+using booking_my_doctor.Services.VnPayService;
+using Quartz;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel(options =>
@@ -57,6 +61,10 @@ services.AddScoped<IHospitalRepository, HospitalRepository>();
 services.AddScoped<ISpeciatlyRepository, SpeciatlyRepository>();
 services.AddScoped<IScheduleRepository, ScheduleRepository>();
 services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+services.AddScoped<IRateRepository, RateRepository>();
+services.AddScoped<IStatisticalRepository, StatisticalRepository>();
+services.AddScoped<IPaymentRepository, PaymentRepository>();
+services.AddScoped<ITimetableRepository, TimetableRepository>();
 
 //services
 services.AddScoped<IAuthService, AuthService>();
@@ -69,6 +77,13 @@ services.AddScoped<ISpeciatlyService, SpeciatlyService>();
 services.AddScoped<IEmailService, EmailService>();
 services.AddScoped<IScheduleService, ScheduleService>();
 services.AddScoped<IAppointmentService, AppointmentService>();
+services.AddScoped<IRateService, RateService>();
+services.AddScoped<IStatisticalService, StatisticalService>();
+services.AddScoped<IPaymentService, PaymentService>();
+services.AddScoped<IVnPayService, VnPayService>();
+services.AddScoped<ITimetableService, TimetableService>();
+services.AddScoped<ScheduleJob>();
+
 
 // Background service
 services.AddHostedService<AppointmentBackgroundService>();
@@ -132,6 +147,25 @@ services.AddSwaggerGen(c =>
             }
         });
 });
+services.AddQuartz(q =>
+{
+    q.UseMicrosoftDependencyInjectionScopedJobFactory();
+    // Just use the name of your job that you created in the Jobs folder.
+    var jobKey = new JobKey("ScheduleJob");
+
+    q.AddJob<ScheduleJob>(opts => opts.WithIdentity(jobKey));
+
+    q.AddTrigger(opts => opts
+        .ForJob(jobKey)
+        .WithIdentity("ScheduleJob-trigger")
+        .WithDailyTimeIntervalSchedule(x => x
+            .OnEveryDay()
+            .StartingDailyAt(TimeOfDay.HourAndMinuteOfDay(11, 04))
+            .EndingDailyAfterCount(1))
+        );
+});
+services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
+
 var app = builder.Build();
 using var scope = app.Services.CreateScope();
 var servicesProvider = scope.ServiceProvider;

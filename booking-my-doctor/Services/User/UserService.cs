@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using booking_my_doctor.Data.Entities;
 using booking_my_doctor.DTOs;
+using booking_my_doctor.DTOs.User;
 using booking_my_doctor.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Cryptography;
@@ -24,6 +25,48 @@ namespace booking_my_doctor.Services
             _roleRepository = roleRepository;
             _doctorRepository = doctorRepository;
         }
+
+        public async Task<ApiResponse> ChangePassUser(ChangepassDTO changepassDTO, int userId)
+        {
+            var user = await _userRepository.GetUserById(userId);
+            if (user == null) return new ApiResponse()
+            {
+                statusCode = 400,
+                message = "Không tồn tại user có id này",
+            };
+
+            using var hmac = new HMACSHA512(user.PasswordSalt);
+            var passwordBytes = hmac.ComputeHash(
+                Encoding.UTF8.GetBytes(changepassDTO.CurrentPass)
+            );
+
+            for (int i = 0; i < user.PasswordHash.Length; i++)
+            {
+                if (user.PasswordHash[i] != passwordBytes[i])
+                {
+                    return new ApiResponse()
+                    {
+                        statusCode = 400,
+                        message = "Mật khẩu hiện tại không chính xác",
+                    };
+                }
+            }
+
+            using var nhmac = new HMACSHA512();
+            var newPass = Encoding.UTF8.GetBytes(changepassDTO.NewPass);
+
+            user.PasswordSalt = nhmac.Key;
+            user.PasswordHash = nhmac.ComputeHash(newPass);
+
+            await _userRepository.UpdateUser(user);
+            await _userRepository.IsSaveChanges();
+            return new ApiResponse()
+            {
+                statusCode = 200,
+                message = "Thành công",
+            };
+        }
+
         public async Task<ApiResponse> CreateUser(UserCreateDto userDto)
         {
             try
@@ -107,6 +150,29 @@ namespace booking_my_doctor.Services
             };
         }
 
+        public async Task<ApiResponse> GetAdminId()
+        {
+            try
+            {
+                var admin = await _userRepository.GetUsers(null, null, null, null, "ROLE_ADMIN");
+                var adminId = admin.ListItem.FirstOrDefault()?.Id;
+                return new ApiResponse
+                {
+                    statusCode = 200,
+                    message = "Thành công",
+                    data = adminId
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse
+                {
+                    statusCode = 500,
+                    message = ex.Message
+                };
+            }
+        }
+
         public async Task<ApiResponse> GetAllUsers(int? page, int? pageSize, string? name, string? sortColumn, string? roleName)
         {
             try
@@ -139,6 +205,29 @@ namespace booking_my_doctor.Services
 
         }
 
+        public async Task<ApiResponse> GetBaseProfileUser(int? userId = null)
+        {
+            try
+            {
+                var res = await _userRepository.GetBaseProfileUser(userId);
+
+                var resDto = res.Select(_mapper.Map<User, UserBaseInfo>).ToList();
+                return new ApiResponse
+                {
+                    statusCode = 200,
+                    message = "Thành công",
+                    data = resDto
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse
+                {
+                    statusCode = 500,
+                    message = ex.Message
+                };
+            }
+        }
 
         public async Task<ApiResponse> GetUserById(int? id)
         {
@@ -156,7 +245,7 @@ namespace booking_my_doctor.Services
                     message = $"Không tìm thấy user có id {id.Value}"
                 };
                 var user = _mapper.Map<UserDTO>(result);
-                if(user.roleName == "ROLE_DOCTOR")
+                if (user.roleName == "ROLE_DOCTOR")
                 {
                     var doctorId = await _doctorRepository.GetDoctorIdByUserId(user.Id);
                     return new ApiResponse
@@ -179,6 +268,7 @@ namespace booking_my_doctor.Services
                             user.isDelete,
                             user.isEmailVerified,
                             user.roleName,
+                            user.gender,
                             doctorId
                         }
                     };
@@ -200,7 +290,7 @@ namespace booking_my_doctor.Services
             }
 
         }
-        [Authorize(Roles="ROLE_ADMIN")]
+        [Authorize(Roles = "ROLE_ADMIN")]
         public async Task<ApiResponse> OpenCloseUser(int userId)
         {
             try

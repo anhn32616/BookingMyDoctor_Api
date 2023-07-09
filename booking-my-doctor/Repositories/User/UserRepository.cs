@@ -97,9 +97,10 @@ namespace booking_my_doctor.Repositories
             return await _context.Users.Include(u => u.role).FirstOrDefaultAsync(u => u.email == email);
         }
 
-        public async Task<bool> VerifiedEmail(User user, string token)
+        public async Task<bool> VerifiedEmail(string token)
         {
-            if (user.token != token) return false;
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.token == token);
+            if(user == null) return false;
             user.isEmailVerified = true;
             _context.Entry(user).State = EntityState.Modified;
             return true;
@@ -116,6 +117,16 @@ namespace booking_my_doctor.Repositories
             user.isDelete = !user.isDelete;
             _context.Entry(user).State = EntityState.Modified;
             return true;
+        }
+
+        public async Task<List<User>> GetBaseProfileUser(int? userId = null)
+        {
+            var query = _context.Users.AsQueryable();
+            if(userId != null)
+            {
+                query = query.Where(u => u.Id == userId);
+            }
+            return await query.ToListAsync();
         }
     }
 }

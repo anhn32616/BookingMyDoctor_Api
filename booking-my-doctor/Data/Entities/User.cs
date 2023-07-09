@@ -22,10 +22,10 @@ namespace booking_my_doctor.Data.Entities
         [Phone]
         public string? phoneNumber { get; set; }
         public DateTime? birthDay { get; set; }
-        [Required, MaxLength(100)]
-        public string city { get; set; }
-        public string district { get; set; }
-        public string ward { get; set; }
+        [MaxLength(100)]
+        public string? city { get; set; }
+        public string? district { get; set; }
+        public string? ward { get; set; }
         [MaxLength(1024)]
         public string? address { get; set; }
         public bool? isDelete { get; set; }
@@ -44,5 +44,6 @@ namespace booking_my_doctor.Data.Entities
         public bool? gender { get; set; }
         public bool isEmailVerified { get; set; }
         public virtual List<Appointment>? Appointments { get; set; }
+        public virtual List<Notification> Notifications { get; set; }
     }
 }

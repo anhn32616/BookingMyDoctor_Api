@@ -12,6 +12,7 @@ namespace booking_my_doctor.DTOs
         public DateTime EndTime { get; set; }
         [Required]
         public int DoctorId { get; set; }
+        public int UserId { get; set; }
         public string Status { get; set; }
 
         [Required]

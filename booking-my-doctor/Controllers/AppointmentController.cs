@@ -1,5 +1,6 @@
 ﻿using booking_my_doctor.DTOs;
 using booking_my_doctor.DTOs.Appointment;
+using booking_my_doctor.DTOs.Rate;
 using booking_my_doctor.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -107,8 +108,8 @@ namespace booking_my_doctor.Controllers
             return StatusCode(res.statusCode, res);
         }
         [Authorize(Roles = "ROLE_PATIENT")]
-        [HttpPut("rate/{id}")]
-        public async Task<IActionResult> PatientRateAppointment(int id, [FromBody] int rate)
+        [HttpPost("rate/{id}")]
+        public async Task<IActionResult> PatientRateAppointment(int id, [FromBody] RateDto rate)
         {
             var patientId = Convert.ToInt32(User.FindFirstValue("UserId"));
             var res = await _appointmentService.PatientRateAppointment(id, patientId, rate);

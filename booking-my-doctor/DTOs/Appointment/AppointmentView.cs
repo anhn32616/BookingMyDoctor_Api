@@ -12,6 +12,7 @@ namespace booking_my_doctor.DTOs.Appointment
         public string Symptoms { get; set; }
         public string Status { get; set; }
         public int? Rating { get; set; }
+        public bool? Paid { get; set; }
         public UserDTO Patient { get; set; }
         public virtual ScheduleView Schedule { get; set; }
     }

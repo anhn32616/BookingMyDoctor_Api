@@ -16,6 +16,9 @@ namespace booking_my_doctor.Data
         public DbSet<Schedule> Schedules { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<Rate> Rates { get; set; }
+        public DbSet<Timetable> Timetables { get; set; }
         #endregion 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -45,6 +48,11 @@ namespace booking_my_doctor.Data
                 e.HasOne(e => e.user)
                 .WithOne()
                 .HasForeignKey<Doctor>(e => e.userId);
+            });
+            modelBuilder.Entity<Rate>(e => {
+                e.HasOne(r => r.Appointment)
+                .WithOne(u => u.Rate)
+                .HasForeignKey<Rate>(u => u.AppointmentId);
             });
         }
     }

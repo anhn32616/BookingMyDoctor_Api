@@ -2,8 +2,11 @@
 using booking_my_doctor.Data.Entities;
 using booking_my_doctor.DTOs;
 using booking_my_doctor.DTOs.Appointment;
+using booking_my_doctor.DTOs.Notification;
+using booking_my_doctor.DTOs.Rate;
 using booking_my_doctor.Repositories;
 using booking_my_doctor.Repositories.Appoiment;
+using System.Numerics;
 
 namespace booking_my_doctor.Services
 {
@@ -15,6 +18,7 @@ namespace booking_my_doctor.Services
         private readonly IUserRepository _userRepository;
         private readonly IScheduleRepository _scheduleRepository;
         private readonly IDoctorRepository _doctorRepository;
+        private readonly IRateRepository _rateRepository;
 
         public AppointmentService(
             IAppointmentRepository appointmentRepository,
@@ -22,7 +26,8 @@ namespace booking_my_doctor.Services
             IEmailService emailService,
             IUserRepository userRepository,
             IScheduleRepository scheduleRepository,
-            IDoctorRepository doctorRepository)
+            IDoctorRepository doctorRepository,
+            IRateRepository rateRepository)
         {
             _appointmentRepository = appointmentRepository;
             _mapper = mapper;
@@ -30,6 +35,7 @@ namespace booking_my_doctor.Services
             _userRepository = userRepository;
             _scheduleRepository = scheduleRepository;
             _doctorRepository = doctorRepository;
+            _rateRepository = rateRepository;
         }
 
         public async Task<ApiResponse> AdminHandleReport(int id, string violator)
@@ -53,7 +59,7 @@ namespace booking_my_doctor.Services
                         message = "Trạng thái của cuộc hẹn không phải là bị báo cáo"
                     };
                 }
-                if(!violator.Equals("doctor") && !violator.Equals("patient"))
+                if (!violator.Equals("doctor") && !violator.Equals("patient"))
                 {
                     return new ApiResponse
                     {
@@ -61,34 +67,78 @@ namespace booking_my_doctor.Services
                         message = "Người vi phạm phải là bác sĩ hoặc bệnh nhân"
                     };
                 }
+                var notifications = new List<NotificationDto>();
+                string messageForPatient = "";
+                string messageForDoctor = "";
                 // Nếu bệnh nhân không đến khám thì tăng số lần vi phạm của bệnh nhân lên và chuyển trạng thái 
                 // của appointment sang NotCome
-                if(violator.Equals("patient"))
+                if (violator.Equals("patient"))
                 {
                     appointment.Patient.countViolation++;
-                    if(appointment.Patient.countViolation > 1)
+                    if (appointment.Patient.countViolation > 1)
                     {
                         appointment.Patient.isDelete = true;
                     }
                     appointment.Status = "NotCome";
+                    string messageDetail = appointment.Patient.countViolation > 1 ? "Tài khoản của bạn đã bị khóa vì vượt qua số lần vi phạm" : "Thêm 1 lần vi phạm nữa tải khoản của bạn sẽ bị khóa";
+                    messageForPatient = $"Admin đã xác nhận bạn không đến khám ngày {appointment.date.ToString("%d/MM/yyyy HH'h'mm")}. Bạn đã vi phạm {appointment.Patient.countViolation}. " + messageDetail;
+                    var notificationPatient = new NotificationDto
+                    {
+                        UserId = appointment.PatientId,
+                        Message = messageForPatient,
+                        DateCreated = DateTime.Now,
+                        Read = false
+                    };
+                    messageForDoctor = $"Admin đã xác nhận bệnh nhân {appointment.Patient.fullName} không đến khám ngày {appointment.date.ToString("%d/MM/yyyy HH'h'mm")}";
+                    var notificationDoctor = new NotificationDto
+                    {
+                        UserId = appointment.Schedule.Doctor.user.Id,
+                        Message = messageForDoctor,
+                        DateCreated = DateTime.Now,
+                        Read = false
+                    };
+                    notifications.Add(notificationPatient);
+                    notifications.Add(notificationDoctor);
                 }
                 // Nếu bác sĩ không đến khám thì tăng số lần vi phạm của bác sĩ lên và chuyển trạng thái 
                 // của appointment sang Done
                 if (violator.Equals("doctor"))
                 {
                     appointment.Schedule.Doctor.user.countViolation++;
-                    if(appointment.Schedule.Doctor.user.countViolation > 1)
+                    if (appointment.Schedule.Doctor.user.countViolation > 1)
                     {
                         appointment.Schedule.Doctor.user.isDelete = true;
                     }
                     appointment.Status = "Done";
+                    string messageDetail = appointment.Schedule.Doctor.user.countViolation > 1 ? "Tài khoản của bạn đã bị khóa vì vượt qua số lần vi phạm" : "Thêm 1 lần vi phạm nữa tải khoản của bạn sẽ bị khóa";
+                    messageForPatient = $"Admin đã xác nhận bạn đã đến khám ngày {appointment.date.ToString("%d/MM/yyyy HH'h'mm")}";
+                    var notificationPatient = new NotificationDto
+                    {
+                        UserId = appointment.PatientId,
+                        Message = messageForPatient,
+                        DateCreated = DateTime.Now,
+                        Read = false
+                    };
+                    messageForDoctor = $"Admin đã xác nhận bệnh nhân {appointment.Patient.fullName} đã đến khám ngày {appointment.date.ToString("%d/MM/yyyy HH'h'mm")}. Bạn đã vi phạm {appointment.Patient.countViolation}. " + messageDetail;
+                    var notificationDoctor = new NotificationDto
+                    {
+                        UserId = appointment.Schedule.Doctor.user.Id,
+                        Message = messageForDoctor,
+                        DateCreated = DateTime.Now,
+                        Read = false
+                    };
+                    notifications.Add(notificationPatient);
+                    notifications.Add(notificationDoctor);
                 }
                 await _appointmentRepository.UpdateAppointment(appointment);
                 await _appointmentRepository.IsSaveChange();
+                _emailService.SendEmail(appointment.Patient.email, "Thông báo về kết quả xử lý vi phạm không đến khám bệnh", messageForPatient);
+                _emailService.SendEmail(appointment.Schedule.Doctor.user.email, "Thông báo về kết quả xử lý vi phạm không đến khám bệnh", messageForDoctor);
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Thành công"
+                    message = "Thành công",
+                    data = notifications
                 };
             }
             catch (Exception ex)
@@ -114,7 +164,7 @@ namespace booking_my_doctor.Services
                         message = "Không tồn tại cuộc hẹn này"
                     };
                 }
-                if(role == "ROLE_PATIENT" && appointment.PatientId != userId)
+                if (role == "ROLE_PATIENT" && appointment.PatientId != userId)
                 {
                     return new ApiResponse
                     {
@@ -133,20 +183,20 @@ namespace booking_my_doctor.Services
                 if (appointment.Status != "Pending" && appointment.Status != "Confirm") return new ApiResponse
                 {
                     statusCode = 400,
-                    message = "Chỉ có thể hủy các cuộc hẹn đang chờ hoặc đã xác nhận nhưng chưa diễn ra trước 1 ngày"
+                    message = "Chỉ có thể hủy các cuộc hẹn đang chờ hoặc đã xác nhận nhưng chưa diễn ra trước 24 giờ"
                 };
                 // Nếu status là pending thì cho cancel luôn
                 if (appointment.Status == "Pending")
                 {
                     appointment.Status = "Cancel";
-                } 
+                }
                 // Nếu status là confirm thì chỉ cho hủy trước 1 ngày khám
-                else if(appointment.Status == "Confirm")
+                else if (appointment.Status == "Confirm")
                 {
                     if (appointment.date < DateTime.Now.AddDays(1)) return new ApiResponse
                     {
                         statusCode = 400,
-                        message = "Chỉ có thể hủy cuộc hẹn trước 1 ngày khám"
+                        message = "Chỉ có thể hủy cuộc hẹn trước 24 giờ khám bệnh"
                     };
                     appointment.Status = "Cancel";
                     //appointment.Schedule.Status = "Available";
@@ -181,7 +231,7 @@ namespace booking_my_doctor.Services
                 var schedule = _scheduleRepository.GetScheduleById(appointmentCreate.ScheduleId);
                 var appointments = _appointmentRepository.GetAppointments(null, null, appointmentCreate.ScheduleId, null, null, appointmentCreate.PatientId);
                 await Task.WhenAll(patient, schedule, appointments);
-                if(patient.Result == null || patient.Result.role.Name != "ROLE_PATIENT")
+                if (patient.Result == null || patient.Result.role.Name != "ROLE_PATIENT")
                 {
                     return new ApiResponse
                     {
@@ -317,6 +367,14 @@ namespace booking_my_doctor.Services
                         message = "Tài khoản của bạn đã bị khóa"
                     };
                 }
+                if (doctor.Result.monthPaid.Value.AddDays(30) < DateTime.Now)
+                {
+                    return new ApiResponse
+                    {
+                        statusCode = 404,
+                        message = "Tài khoản cần gia hạn đăng ký tháng"
+                    };
+                }
                 if (doctor.Result.Id != appointment.Result.Schedule.DoctorId)
                 {
                     return new ApiResponse
@@ -332,10 +390,20 @@ namespace booking_my_doctor.Services
                 await _scheduleRepository.IsSaveChanges();
                 // Chuyển trạng thái các appointment còn lại đã đặt schedule này sang Cancel
                 var appointmentsCancel = await _appointmentRepository.GetAppointments(null, null, appointment.Result.ScheduleId);
+                appointmentsCancel.ListItem = appointmentsCancel.ListItem.Where(a => a.Id != appointmentId).ToList();
+                var listNotification = new List<NotificationDto>();
                 foreach (var item in appointmentsCancel.ListItem)
                 {
                     item.Status = "Cancel";
                     await _appointmentRepository.UpdateAppointment(item);
+                    var notification = new NotificationDto
+                    {
+                        UserId = item.PatientId,
+                        Message = $"Bác sĩ {item.Schedule.Doctor.user.fullName} đã từ chối lịch khám ngày {item.date.ToString("%d/MM/yyyy HH'h'mm")}",
+                        DateCreated = DateTime.Now,
+                        Read = false
+                    };
+                    listNotification.Add(notification);
                 }
                 // Chuyển trạng thái appointment sang Confirm
                 appointment.Result.Status = "Confirm";
@@ -344,7 +412,8 @@ namespace booking_my_doctor.Services
                 return new ApiResponse
                 {
                     statusCode = 200,
-                    message = "Thành công"
+                    message = "Thành công",
+                    data = listNotification.Count != 0 ? listNotification : null
                 };
             }
             catch (Exception ex)
@@ -467,10 +536,10 @@ namespace booking_my_doctor.Services
                     message = ex.Message
                 };
             }
-            
+
         }
 
-        public async Task<ApiResponse> PatientRateAppointment(int id, int patientId, int rate)
+        public async Task<ApiResponse> PatientRateAppointment(int id, int patientId, RateDto rateDto)
         {
             try
             {
@@ -510,8 +579,36 @@ namespace booking_my_doctor.Services
                     };
                 }
 
-                
-                appointment.Result.Rating = rate;
+                // Tạo rate mới nếu bệnh nhân đánh giá lần đâu
+                // Update rate nếu bệnh nhân đánh giá lại
+                var doctor = appointment.Result.Schedule.Doctor;
+                var rateCurrent = await _rateRepository.GetRateByAppointmentId(appointment.Result.Id);
+                if (rateCurrent == null)
+                // create
+                {
+                    var rate = _mapper.Map<RateDto, Rate>(rateDto);
+                    await _rateRepository.CreateRate(rate);
+                    await _rateRepository.IsSaveChange();
+                    if(doctor.numberOfReviews == null)
+                    {
+                        doctor.rate = rate.Point;
+                        doctor.numberOfReviews = 1;
+                    } else
+                    {
+                        doctor.rate = (doctor.rate * doctor.numberOfReviews + rate.Point) / (doctor.numberOfReviews + 1);
+                        doctor.numberOfReviews++;
+                    }
+                } else
+                // update
+                {
+                    doctor.rate = (doctor.rate * doctor.numberOfReviews - rateCurrent.Point + rateDto.Point) / doctor.numberOfReviews;
+                    rateCurrent.Point = rateDto.Point;
+                    rateCurrent.Comment= rateDto.Comment;
+                    await _rateRepository.UpdateRate(rateCurrent);
+                    await _rateRepository.IsSaveChange();
+                }
+                await _doctorRepository.UpdateDoctor(doctor);
+                await _doctorRepository.IsSaveChanges();
                 await _appointmentRepository.UpdateAppointment(appointment.Result);
                 await _appointmentRepository.IsSaveChange();
                 return new ApiResponse

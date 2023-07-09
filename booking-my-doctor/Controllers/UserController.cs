@@ -1,4 +1,5 @@
 ﻿using booking_my_doctor.DTOs;
+using booking_my_doctor.DTOs.User;
 using booking_my_doctor.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -74,6 +75,26 @@ namespace booking_my_doctor.Controllers
             var userId = Convert.ToInt32(User.FindFirstValue("UserId"));
             var resData = await _userService.UpdateUser(userId, userUpdateDTO);
             return StatusCode(resData.statusCode, resData);
+        }
+        [HttpGet("users-base-info")]
+        public async Task<IActionResult> GetBaseProfileUser(int? userId = null)
+        {
+            var resData = await _userService.GetBaseProfileUser(userId);
+            return StatusCode(resData.statusCode, resData);
+        }
+        [HttpGet("getAdminId")]
+        public async Task<IActionResult> GetAdminId()
+        {
+            var resData = await _userService.GetAdminId();
+            return StatusCode(resData.statusCode, resData);
+        }
+        [HttpPut("changepass")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword(ChangepassDTO changepassDTO)
+        {
+            var userId = Convert.ToInt32(User.FindFirstValue("UserId"));
+            var res = await _userService.ChangePassUser(changepassDTO, userId);
+            return StatusCode(res.statusCode, res);
         }
     }
 }

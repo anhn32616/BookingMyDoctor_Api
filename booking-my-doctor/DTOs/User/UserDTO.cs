@@ -21,7 +21,7 @@ namespace booking_my_doctor.DTOs
         [Phone]
         public string? phoneNumber { get; set; }
         public DateTime? birthDay { get; set; }
-        [Required, MaxLength(100)]
+        [MaxLength(100)]
         public string city { get; set; }
         public string district { get; set; }
         public string ward { get; set; }

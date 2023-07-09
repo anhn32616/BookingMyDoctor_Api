@@ -33,7 +33,7 @@ namespace booking_my_doctor.Services
                 email.From.Add(MailboxAddress.Parse(_config.GetSection("Email:From").Value));
                 email.To.Add(MailboxAddress.Parse(to));
                 email.Subject = subject;
-                email.Body = new TextPart(TextFormat.Text) { Text = body };
+                email.Body = new TextPart(TextFormat.Html) { Text = body };
 
                 using var smtp = new SmtpClient();
 

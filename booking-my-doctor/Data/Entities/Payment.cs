@@ -15,12 +15,12 @@ namespace booking_my_doctor.Data.Entities
         [Required]
         public double AppointmentFee { get; set; }
         public double TotalFee => MonthlyFee + AppointmentFee;
+
         [Required]
-        public DateTime month { get; set; }
+        public bool Status { get; set; } = false;
         [Required]
-        public string TransId { get; set; }
+        public string? TransId { get; set; }
         public virtual Doctor Doctor { get; set; }
-        public virtual List<Appointment>? Appointments { get; set; } = new List<Appointment>();
 
     }
 }

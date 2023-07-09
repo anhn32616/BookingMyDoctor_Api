@@ -67,9 +67,6 @@ namespace booking_my_doctor.Repositories.Appoiment
                 case "Id":
                     query = query.OrderBy(u => u.Id);
                     break;
-                case "Rating":
-                    query = query.OrderByDescending(u => u.Rating);
-                    break;
                 case "Date":
                     query = query.OrderByDescending(u => u.date).ThenByDescending(u => u.Id);
                     break;
@@ -110,8 +107,8 @@ namespace booking_my_doctor.Repositories.Appoiment
 
         public async Task<bool> UpdateAppointmentCancel()
         {
-            // Hủy các appointment chưa được chấp nhận trước 1 giờ
-            var appointmentCancel = await _context.Appointments.Where(a => a.date < DateTime.Now.AddHours(-1) && a.Status == "Pending").ToListAsync();
+            // Hủy các appointment chưa được chấp nhận trước 6 giờ
+            var appointmentCancel = await _context.Appointments.Where(a => a.date < DateTime.Now.AddHours(-6) && a.Status == "Pending").ToListAsync();
             foreach (var item in appointmentCancel)
             {
                 item.Status = "Cancel";

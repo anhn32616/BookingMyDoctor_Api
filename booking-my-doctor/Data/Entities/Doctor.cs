@@ -26,5 +26,7 @@ namespace booking_my_doctor.Data.Entities
         public virtual Clinic clinic { get; set; }
         public virtual User user { get; set; }
         public virtual List<Schedule> Schedules { get; set; }
+        public virtual List<Payment> Payments { get; set; }
+        public virtual List<Timetable> Timetables { get; set; }
     }
 }
